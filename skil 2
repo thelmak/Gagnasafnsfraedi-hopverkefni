@@ -1,0 +1,52 @@
+CREATE DATABASE PII 
+with
+encoding = 'UTF8'
+
+/*1:The	ID band	name of	all	locations, sorted descending by	name */
+/*Vantar að raða í rétta röð, ehv að gera með UTF8*/
+SELECT LocationID, location
+From Locations
+ORDER BY location DESC, LocationID;
+
+
+/* 2.The name of all locations with	at least one case, sorted in ascending order.*/
+/*Vantar að raða í rétta röð, ehv að gera með UTF8*/
+SELECT location, caseCount
+FROM Locations
+WHERE caseCount >= 1
+ORDER BY location ASC;
+
+/* 3. The number of	people that	are	female.*/
+SELECT COUNT(P.GenderID)
+FROM People P INNER JOIN Genders G on P.GenderID = G.GenderID
+WHERE G.gender = 'Female';
+
+/*4. The secret	identity name of agents	who	have investigated people more than ten times.*/
+SELECT codename
+FROM Agents A INNER JOIN Cases C on A.AgentID = C.AgentID 
+GROUP BY codename
+having count(*)>10;
+
+/* alvuru nafn*/
+/*4. The secret	identity name of agents	who	have investigated people more than ten times.*/
+SELECT 
+    People.name
+FROM Agents
+    INNER JOIN People ON Agents.secretIdentity = People.PersonID 
+    INNER JOIN Cases ON Agents.AgentID = Cases.AgentID
+GROUP BY people.name
+having count(*)>10;
+
+/*5. The	 PersonID,	 name,	 and	 case	 title	 of	 culprits	 that	 live	 in	 the	 same	 place	 they	
+committed	their	crime.*/
+
+SELECT
+    People.name, People.PersonID,Cases.Title
+From People
+    INNER JOIN Cases on People.LocationID = Cases.LocationID/*Hverjir búa þar sem caesið gerist*/
+    INNER JOIN InvolvedIn on people.PersonID = InvolvedIn.PersonID/* Hverjir voru involved*/
+    WHERE InvolvedIn.isCulprit = TRUE
+group by people.name, People.PersonID, cases.title 
+ORDER BY cases.title  DESC;
+/* Held að þetta sé komið, ekki 100% viss samt*/
+
