@@ -1,33 +1,24 @@
-CREATE DATABASE PII 
-with
-encoding = 'UTF8'
+CREATE DATABASE PII
+WITH 
+    template template0 locale "is_IS.UTF-8";
 
 /*1:The	ID band	name of	all	locations, sorted descending by	name */
-/*Vantar að raða í rétta röð, ehv að gera með UTF8*/
 SELECT LocationID, location
 From Locations
 ORDER BY location DESC, LocationID;
 
-
 /* 2.The name of all locations with	at least one case, sorted in ascending order.*/
-/*Vantar að raða í rétta röð, ehv að gera með UTF8*/
 SELECT location, caseCount
 FROM Locations
-WHERE caseCount >= 1
+    WHERE caseCount >= 1
 ORDER BY location ASC;
 
 /* 3. The number of	people that	are	female.*/
 SELECT COUNT(P.GenderID)
-FROM People P INNER JOIN Genders G on P.GenderID = G.GenderID
-WHERE G.gender = 'Female';
+FROM People P 
+    INNER JOIN Genders G on P.GenderID = G.GenderID
+    WHERE G.gender = 'Female';
 
-/*4. The secret	identity name of agents	who	have investigated people more than ten times.*/
-SELECT codename
-FROM Agents A INNER JOIN Cases C on A.AgentID = C.AgentID 
-GROUP BY codename
-having count(*)>10;
-
-/* alvuru nafn*/
 /*4. The secret	identity name of agents	who	have investigated people more than ten times.*/
 SELECT 
     People.name
@@ -35,11 +26,9 @@ FROM Agents
     INNER JOIN People ON Agents.secretIdentity = People.PersonID 
     INNER JOIN Cases ON Agents.AgentID = Cases.AgentID
 GROUP BY people.name
-having count(*)>10;
+    having count(*)>10;
 
-/*5. The	 PersonID,	 name,	 and	 case	 title	 of	 culprits	 that	 live	 in	 the	 same	 place	 they	
-committed	their	crime.*/
-
+/*5. The PersonID, name, and case title	of culprits	that live in the same place	they committed their crime.*/
 SELECT
     People.name, People.PersonID,Cases.Title
 From People
@@ -48,5 +37,90 @@ From People
     WHERE InvolvedIn.isCulprit = TRUE
 group by people.name, People.PersonID, cases.title 
 ORDER BY cases.title  DESC;
-/* Held að þetta sé komið, ekki 100% viss samt*/
 
+
+/*6. The ID, name and gender of	all	people who are involved	in a case in Selfoss.*/
+/*Ætti að vera komið, Gæti þurft að bæta við Agents því þa ðer 1 case á selfosi með engin people ID en 1 agent ID*/
+SELECT
+    P.PersonID,
+    P.name,
+    G.gender
+FROM
+    InvolvedIn I
+        INNER JOIN People P on P.PersonID = I.PersonID
+        INNER JOIN Genders G on G.genderID = P.GenderID
+        INNER JOIN Cases C on C.CaseID = I.CaseID
+        INNER JOIN Locations L on L.LocationID = C.LocationID
+    Where L.location = 'Selfoss'
+GROUP bY P.name, P.PersonID,G.gender
+ORDER BY P.name ASC;
+
+/* 7. For each Person that has a profession	that ends with “therapist” and is involved with an open	case, list the ID, name	and	profession of the person and how many open cases they are involved in;	the	last	column	should	be	named	“numcases”.	*/
+SELECT
+    People.PersonID, People.name, Professions.description, Count(People.name) AS numcases
+From People
+    INNER JOIN Professions ON People.ProfessionID = Professions.ProfessionID
+    INNER JOIN InvolvedIn ON People.PersonID = InvolvedIn.PersonID
+    INNER JOIN Cases ON InvolvedIn.CaseID = Cases.CaseID
+    Where Cases.isClosed = False AND Professions.description LIKE '% therapist'
+    GROUP BY People.name, Professions.description, People.PersonID
+    ORDER BY Count(People.name) DESC;
+    
+/*8. The codename, gender and password of all agent that have a weak password. A password is weak if the agent's codename can be found in their	password. */
+SELECT
+    A.Codename,
+    G.gender,
+    P.password
+From
+    Agents A
+    INNER JOIN Genders G on A.GenderID = G.GenderID
+    INNER JOIN Passwords P on A.AgentID = P.AgentID
+    Where P.password LIKE concat('%', A.Codename ,'%')
+ORDER BY A.Codename ASC;
+
+/*9. The ID	and	name of	each person	involved in	at least two cases in a	town whose name	ends in	“vogur”. Additionally, 
+a row called “hasbeenculprit” should say “guilty” if they have ever been the culprit in any of those cases, otherwise 
+it should say “not guilty”. */
+
+
+
+SELECT
+    I.PersonID,
+    P.name, 
+    CASE
+        WHEN I.isCulprit = TRUE THEN 'guilty'
+    else 'not guilty'
+    end
+FROM
+    InvolvedIn I
+    INNER JOIN Cases C on C.CaseID = I.CaseID
+    INNER JOIN People P on I.PersonID = P.PersonID
+    INNER JOIN Locations L on C.LocationID = L.LocationID
+    Where L. location LIKE '%vogur'
+GROUP BY P.name, I.PersonID,I.isCulprit
+having count(*)>1
+ORDER BY P.name ASC;
+    
+    
+
+
+
+/*10. For people that have been	investigated by exactly	3 different	agents,	select their ID,	
+name and gender as well	as how many	years it has been since	they were last investigated.	
+The	 last column should	be named “yearsSinceLastInvestigation” Please note that some	
+people involved	in a crime are not investigated, and that The Bureau is	 operating in the	
+current	year: 2045. */
+
+SELECT
+    P.PersonID,
+    P.name,
+    G.gender
+FROM
+    Agents A
+    INNER JOIN InvolvedIn I on A.AgentID = I.AgentID
+    INNER JOIN People P on P.PersonID = I.PersonID
+    INNER JOIN Genders G on G.GenderID = P.GenderID
+    INNER JOIN Cases C on C.CaseID = I.CaseID
+    Where C.year
+GROUP BY P.PersonID, P.name, G.gender
+having count(*) = 3 and count(distinct A.AgentID) > 2;
