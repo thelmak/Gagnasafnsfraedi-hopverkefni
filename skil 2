@@ -1,170 +1,156 @@
-CREATE DATABASE PII WITH template template0 locale "is_IS.UTF-8";
+/*CREATE DATABASE PII WITH template template0 locale "is_IS.UTF-8";*/
 
-/*1:The	ID band	name of	all	locations, sorted descending by	name */
-SELECT
-    L.LocationID,
-    L.location
-From
-    Locations L
-ORDER BY
-    L.location DESC,
-    L.LocationID;
+/*Query 1 */
+SELECT 1 AS Query;
+    SELECT
+        L.LocationID,
+        L.location
+    From
+        Locations L
+    ORDER BY
+        L.location DESC,
+        L.LocationID;
 
-/* 2.The name of all locations with	at least one case, sorted in ascending order.*/
-SELECT
-    L.location,
-    L.caseCount
-FROM
-    Locations L
-WHERE
-    L.caseCount >= 1
-ORDER BY
-    L.location ASC;
+/*Query 2 */
+SELECT 2 AS Query;
+    SELECT
+        L.location,
+        L.caseCount
+    FROM
+        Locations L
+    WHERE
+        L.caseCount >= 1
+    ORDER BY
+        L.location ASC;
 
-/* 3. The number of	people that	are	female.*/
-SELECT
-    COUNT(P.GenderID)
-FROM
-    People P
-    INNER JOIN Genders G on P.GenderID = G.GenderID
-WHERE
-    G.gender = 'Female';
+/*Query 3 */
+SELECT 3 AS Query;
+    SELECT
+        COUNT(P.GenderID)
+    FROM
+        People P
+        INNER JOIN Genders G on P.GenderID = G.GenderID
+    WHERE
+        G.gender = 'Female';
 
-/*4. The secret	identity name of agents	who	have investigated people more than ten times.*/
-SELECT
-    P.name
-FROM
-    Agents A
-    INNER JOIN People P ON A.secretIdentity = P.PersonID
-    INNER JOIN Cases C ON A.AgentID = C.AgentID
-GROUP BY
-    P.name
-having
-    count(*) > 10;
+/*Query 4 */
+SELECT 4 AS Query;
+    SELECT
+        P.name
+    FROM
+        Agents A
+        INNER JOIN People P ON A.secretIdentity = P.PersonID
+        INNER JOIN Cases C ON A.AgentID = C.AgentID
+    GROUP BY
+        P.name
+    having
+        count(*) > 10;
 
-/*5. The PersonID, name, and case title	of culprits	that live in the same place	they committed their crime.*/
-SELECT
-    P.name,
-    P.PersonID,
-    C.Title
-From
-    People P
-    INNER JOIN Cases C on P.LocationID = C.LocationID
-    /*Hverjir búa þar sem caesið gerist*/
-    INNER JOIN InvolvedIn I on P.PersonID = I.PersonID
-    /* Hverjir voru involved*/
-WHERE
-    I.isCulprit = TRUE
-group by
-    P.name,
-    P.PersonID,
-    C.title
-ORDER BY
-    C.title DESC;
+/*Query 5 */
+SELECT 5 AS Query;
+    SELECT
+        P.name,
+        P.PersonID,
+        C.Title
+    From
+        People P
+        INNER JOIN InvolvedIn I on P.PersonID = I.PersonID
+        /* Hverjir voru involved*/
+        INNER JOIN Cases C on P.LocationID = C.LocationID
+        AND C.CaseID = I.CaseID
+        /*Hverjir búa þar sem caesið gerist*/
+    WHERE
+        I.isCulprit = TRUE;
 
-53
-/*6. The ID, name and gender of	all	people who are involved	in a case in Selfoss.*/
-/*Ætti að vera komið, Gæti þurft að bæta við Agents því þa ðer 1 case á selfosi með engin people ID en 1 agent ID*/
-SELECT
-    P.PersonID,
-    P.name,
-    G.gender
-FROM
-    InvolvedIn I
-    INNER JOIN People P on P.PersonID = I.PersonID
-    INNER JOIN Genders G on G.genderID = P.GenderID
-    INNER JOIN Cases C on C.CaseID = I.CaseID
-    INNER JOIN Locations L on L.LocationID = C.LocationID
-Where
-    L.location = 'Selfoss'
-GROUP bY
-    P.name,
-    P.PersonID,
-    G.gender
-ORDER BY
-    P.name ASC;
+/*Query 6 */
+SELECT 6 AS Query;
+    SELECT
+        DISTINCT P.PersonID,
+        P.name,
+        G.gender
+    FROM
+        InvolvedIn I
+        INNER JOIN People P on P.PersonID = I.PersonID
+        INNER JOIN Genders G on G.genderID = P.GenderID
+        INNER JOIN Cases C on C.CaseID = I.CaseID
+        INNER JOIN Locations L on L.LocationID = C.LocationID
+    Where
+        L.location = 'Selfoss';
 
-/* 7. For each Person that has a profession	that ends with “therapist” and is involved with an open	case, list the ID, name	and	profession of the person and how many open cases they are involved in;	the	last	column	should	be	named	“numcases”.	*/
-SELECT
-    P.PersonID,
-    P.name,
-    Pf.description,
-    Count(P.name) AS numcases
-From
-    People P
-    INNER JOIN Professions Pf ON P.ProfessionID = Pf.ProfessionID
-    INNER JOIN InvolvedIn I ON P.PersonID = I.PersonID
-    INNER JOIN Cases C ON I.CaseID = C.CaseID
-Where
-    C.isClosed = False
-    AND Pf.description LIKE '% therapist'
-GROUP BY
-    P.name,
-    Pf.description,
-    P.PersonID
-ORDER BY
-    Count(P.name) DESC;
+/*Query 7 */
+SELECT 7 AS Query;
+    SELECT
+        P.PersonID,
+        P.name,
+        Pf.description,
+        Count(P.name) AS numcases
+    From
+        People P
+        INNER JOIN Professions Pf ON P.ProfessionID = Pf.ProfessionID
+        INNER JOIN InvolvedIn I ON P.PersonID = I.PersonID
+        INNER JOIN Cases C ON I.CaseID = C.CaseID
+    Where
+        C.isClosed = False
+        AND Pf.description LIKE '% therapist'
+    GROUP BY
+        P.name,
+        Pf.description,
+        P.PersonID;
 
-/*8. The codename, gender and password of all agent that have a weak password. A password is weak if the agent's codename can be found in their	password. */
-SELECT
-    A.Codename,
-    G.gender,
-    P.password
-From
-    Agents A
-    INNER JOIN Genders G on A.GenderID = G.GenderID
-    INNER JOIN Passwords P on A.AgentID = P.AgentID
-Where
-    P.password LIKE concat('%', A.Codename, '%')
-ORDER BY
-    A.Codename ASC;
+/*Query 8 */
+SELECT 8 AS Query;
+    SELECT
+        A.Codename,
+        G.gender,
+        P.password
+    From
+        Agents A
+        INNER JOIN Genders G on A.GenderID = G.GenderID
+        INNER JOIN Passwords P on A.AgentID = P.AgentID
+    Where
+        P.password LIKE concat('%', A.Codename, '%');
 
-/*9. The ID	and	name of	each person	involved in	at least two cases in a	town whose name	ends in	“vogur”. Additionally, 
- a row called “hasbeenculprit” should say “guilty” if they have ever been the culprit in any of those cases, otherwise 
- it should say “not guilty”. */
-SELECT
-    I.PersonID,
-    P.name,
-    CASE
-        WHEN I.isCulprit = TRUE THEN 'guilty'
-        else 'not guilty'
-    end as hasbeenculprit
-FROM
-    InvolvedIn I
-    INNER JOIN Cases C on C.CaseID = I.CaseID
-    INNER JOIN People P on I.PersonID = P.PersonID
-    INNER JOIN Locations L on C.LocationID = L.LocationID
-Where
-    L.location LIKE '%vogur'
-GROUP BY
-    P.name,
-    I.PersonID,
-    I.isCulprit
-having
-    count(*) > 1
-ORDER BY
-    P.name ASC;
+/*Query 9 */
+SELECT 9 AS Query;
+    SELECT
+        I.PersonID,
+        P.name,
+        CASE
+            WHEN I.isCulprit = TRUE THEN 'guilty'
+            else 'not guilty'
+        end as hasbeenculprit
+    FROM
+        InvolvedIn I
+        INNER JOIN Cases C on C.CaseID = I.CaseID
+        INNER JOIN People P on I.PersonID = P.PersonID
+        INNER JOIN Locations L on C.LocationID = L.LocationID
+    Where
+        L.location LIKE '%vogur'
+    GROUP BY
+        P.name,
+        I.PersonID,
+        I.isCulprit
+    having
+        count(*) > 1;
 
-/*10. For people that have been	investigated by exactly	3 different	agents,	select their ID,	
- name and gender as well	as how many	years it has been since	they were last investigated.	
- The	 last column should	be named “yearsSinceLastInvestigation” Please note that some	
- people involved	in a crime are not investigated, and that The Bureau is	 operating in the	
- current	year: 2045. */
-SELECT
-    P.PersonID,
-    P.name,
-    G.gender,
-    2045 - MAX(C.year) as yearsSinceLastInvestigation
-FROM
-    Agents A
-    INNER JOIN InvolvedIn I on A.AgentID = I.AgentID
-    INNER JOIN People P on P.PersonID = I.PersonID
-    INNER JOIN Genders G on G.GenderID = P.GenderID
-    INNER JOIN Cases C on C.CaseID = I.CaseID
-GROUP BY
-    P.PersonID,
-    P.name,
-    G.gender
-having
-    count(*) = 3
-    and count(distinct A.AgentID) > 2;
+/*Query 10 */
+SELECT 10 AS Query;
+    SELECT
+        P.PersonID,
+        P.name,
+        G.gender,
+        2045 - MAX(C.year) as yearsSinceLastInvestigation
+    FROM
+        Agents A
+        INNER JOIN InvolvedIn I on A.AgentID = I.AgentID
+        INNER JOIN People P on P.PersonID = I.PersonID
+        INNER JOIN Genders G on G.GenderID = P.GenderID
+        INNER JOIN Cases C on C.CaseID = I.CaseID
+    GROUP BY
+        P.PersonID,
+        P.name,
+        G.gender
+    HAVING
+        count(*) = 3
+        and count(distinct A.AgentID) = 3;
+
